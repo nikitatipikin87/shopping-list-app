@@ -9,6 +9,7 @@ data class ShoppingItem(
     val quantity: String = "1 шт",
     val category: String = "Продукты",
     val isBought: Boolean = false,
+    val boughtBy: String? = null,
     val timestamp: Long = System.currentTimeMillis()
 ) {
     fun toJson(): JSONObject {
@@ -18,6 +19,7 @@ data class ShoppingItem(
             put("quantity", quantity)
             put("category", category)
             put("isBought", isBought)
+            if (boughtBy != null) put("boughtBy", boughtBy)
             put("timestamp", timestamp)
         }
     }
@@ -30,6 +32,7 @@ data class ShoppingItem(
                 quantity = json.optString("quantity", "1 шт"),
                 category = json.optString("category", "Продукты"),
                 isBought = json.optBoolean("isBought", false),
+                boughtBy = if (json.has("boughtBy")) json.optString("boughtBy") else null,
                 timestamp = json.optLong("timestamp", System.currentTimeMillis())
             )
         }
@@ -37,9 +40,9 @@ data class ShoppingItem(
         val CATEGORIES = listOf(
             "Продукты",
             "Бытовая химия",
-            "Напитки",
             "Аптека",
             "Для дома",
+            "Напитки",
             "Другое"
         )
     }
