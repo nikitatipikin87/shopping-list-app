@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Список Покупок</title>
+  <!-- PWA & Apple Mobile Web App tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Покупки">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3737/3737372.png">
+
+  <style>
+    :root {
+      --primary: #2563EB;
+      --primary-hover: #1D4ED8;
+      --primary-light: #EFF6FF;
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --success: #10B981;
+      --success-light: #DCFCE7;
+      --danger: #EF4444;
+      --danger-light: #FEE2E2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+      position: relative;
+    }
+
+    /* Top Bar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .user-info h1 {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .user-info span {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sync-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sync-btn.rotating svg {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 6px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .badge {
+      background: var(--danger);
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    /* Content Area */
+    .content {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      padding-bottom: 80px;
+    }
+
+    /* Cards */
+    .list-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .list-card:hover {
+      box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+    }
+
+    .list-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .list-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .list-card-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .status-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .status-draft { background: #F1F5F9; color: var(--text-muted); }
+    .status-sent { background: var(--primary-light); color: var(--primary); }
+    .status-complete { background: var(--success-light); color: var(--success); }
+
+    .list-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 8px;
+      border-top: 1px solid #F1F5F9;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #94A3B8;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .delete-btn:hover { color: var(--danger); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state svg {
+      width: 56px;
+      height: 56px;
+      stroke: #CBD5E1;
+      margin-bottom: 12px;
+    }
+    .empty-state h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .empty-state p { font-size: 13px; line-height: 1.4; }
+
+    /* FAB */
+    .fab {
+      position: absolute;
+      bottom: 24px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.4);
+      cursor: pointer;
+      font-size: 26px;
+      transition: transform 0.1s;
+    }
+    .fab:active { transform: scale(0.95); }
+
+    /* Detail View */
+    .detail-view {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .detail-back {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .send-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+
+    .item-row.bought {
+      background: #F8FAFC;
+      opacity: 0.7;
+    }
+
+    .checkbox {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #CBD5E1;
+      border-radius: 6px;
+      margin-right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .checkbox.checked {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+
+    .item-name {
+      font-size: 15px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .item-name.bought {
+      text-decoration: line-through;
+      color: #94A3B8;
+    }
+
+    .item-tag {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 6px;
+    }
+
+    .item-category {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .bought-by-label {
+      font-size: 11px;
+      color: var(--success);
+      font-style: italic;
+      margin-left: 6px;
+    }
+
+    .bottom-bar {
+      position: sticky;
+      bottom: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      margin-top: auto;
+    }
+
+    .add-item-btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+
+    .modal-box {
+      background: white;
+      width: 100%;
+      max-width: 400px;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .modal-box h2 {
+      font-size: 18px;
+      margin-bottom: 12px;
+      font-weight: 800;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    .input-field:focus { border-color: var(--primary); }
+
+    .quick-chips {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      margin-bottom: 14px;
+    }
+
+    .quick-chip {
+      background: #F1F5F9;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      border: none;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 10px;
+      background: #F1F5F9;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      flex: 1;
+      padding: 10px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .user-select-item {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 6px;
+      border: 1px solid transparent;
+    }
+
+    .user-select-item:hover, .user-select-item.active {
+      background: var(--primary-light);
+      border-color: #93C5FD;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Top Bar -->
+  <header>
+    <div class="user-profile-badge" onclick="openUserModal()">
+      <div id="userAvatar" class="avatar" style="background:#2563EB">Н</div>
+      <div class="user-info">
+        <h1 id="userName">Никита ▾</h1>
+        <span id="cloudStatus" style="font-size:11px; color:#10B981; font-weight:600;">🟢 Облако активно</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="syncBtn" class="sync-btn" onclick="syncWithCloud()" title="Синхронизировать с облаком">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabsBar">
+    <div class="tab active" onclick="switchTab('my_lists')">
+      📝 Мои списки
+    </div>
+    <div class="tab" onclick="switchTab('inbox')">
+      📥 Входящие <span id="inboxBadge" class="badge" style="display:none">0</span>
+    </div>
+    <div class="tab" onclick="switchTab('sent')">
+      📤 Отправленные
+    </div>
+  </div>
+
+  <!-- Main View -->
+  <main id="mainView" class="content"></main>
+
+  <!-- FAB Button -->
+  <button id="fabBtn" class="fab" onclick="openCreateListModal()">+</button>
+</div>
+
+<!-- Modal Container -->
+<div id="modalOverlay" class="modal-overlay" style="display:none" onclick="closeModalOnOverlay(event)">
+  <div id="modalBox" class="modal-box"></div>
+</div>
+
+<script>
+  const TOPIC = "nikita_shopping_sync_channel_88";
+  const POST_URL = "https://ntfy.sh/" + TOPIC;
+  const GET_URL = "https://ntfy.sh/" + TOPIC + "/json?poll=1";
+
+  const DEFAULT_USERS = [
+    { id: 'user_nikita', name: 'Никита', colorHex: '#2563EB' },
+    { id: 'user_maria', name: 'Мария', colorHex: '#EC4899' },
+    { id: 'user_alex', name: 'Алексей', colorHex: '#10B981' }
+  ];
+
+  let users = JSON.parse(localStorage.getItem('web_users') || JSON.stringify(DEFAULT_USERS));
+  let currentUserId = localStorage.getItem('web_current_user_id') || 'user_nikita';
+  let lists = [];
+  let currentTab = 'my_lists';
+  let selectedListId = null;
+
+  function updateSyncStatus(msg) {
+    const el = document.getElementById('cloudStatus');
+    if (el) el.innerText = msg;
+  }
+
+  function getCurrentUser() {
+    return users.find(u => u.id === currentUserId) || users[0];
+  }
+
+  // Загрузка списков
+  async function loadInitialData() {
+    const local = localStorage.getItem('web_lists');
+    if (local) {
+      lists = JSON.parse(local);
+      render();
+    }
+    await syncWithCloud();
+  }
+
+  // Облачная синхронизация
+  async function syncWithCloud() {
+    const syncBtn = document.getElementById('syncBtn');
+    if (syncBtn) syncBtn.classList.add('rotating');
+    try {
+      const res = await fetch(GET_URL);
+      if (res.ok) {
+        const text = await res.text();
+        const lines = text.trim().split('\n');
+        let latestMsg = null;
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            if (data.event === 'message' && data.message && data.message.startsWith('[')) {
+              latestMsg = data.message;
+            }
+          } catch (_) {}
+        }
+        if (latestMsg) {
+          const remoteLists = JSON.parse(latestMsg);
+          if (Array.isArray(remoteLists)) {
+            lists = remoteLists;
+            localStorage.setItem('web_lists', JSON.stringify(lists));
+            render();
+            updateSyncStatus('🟢 Облако: Синхронизировано');
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Синхронизация временно недоступна, используем оффлайн-копию', e);
+      updateSyncStatus('🟡 Оффлайн-режим');
+    } finally {
+      if (syncBtn) setTimeout(() => syncBtn.classList.remove('rotating'), 600);
+    }
+  }
+
+  async function saveAndUpload(newLists) {
+    lists = newLists;
+    localStorage.setItem('web_lists', JSON.stringify(lists));
+    render();
+    try {
+      updateSyncStatus('🔄 Отправка в облако...');
+      const res = await fetch(POST_URL, {
+        method: 'POST',
+        headers: { 'Title': 'ShoppingListSync' },
+        body: JSON.stringify(lists)
+      });
+      if (res.ok) {
+        updateSyncStatus('🟢 Облако: Отправлено');
+      } else {
+        updateSyncStatus('🔴 Ошибка отправки');
+      }
+    } catch (e) {
+      console.log('Ошибка отправки в облако', e);
+      updateSyncStatus('🔴 Ошибка сети');
+    }
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    selectedListId = null;
+    document.querySelectorAll('.tab').forEach((el, idx) => {
+      el.classList.toggle('active', (tab === 'my_lists' && idx === 0) || (tab === 'inbox' && idx === 1) || (tab === 'sent' && idx === 2));
+    });
+    render();
+  }
+
+  function render() {
+    const user = getCurrentUser();
+    document.getElementById('userName').innerHTML = user.name + ' ▾';
+    document.getElementById('userAvatar').innerText = user.name[0];
+    document.getElementById('userAvatar').style.backgroundColor = user.colorHex;
+
+    // Счётчик для входящих
+    const inboxCount = lists.filter(l => l.recipientId === user.id && l.status !== 'completed').length;
+    const inboxBadge = document.getElementById('inboxBadge');
+    if (inboxCount > 0) {
+      inboxBadge.innerText = inboxCount;
+      inboxBadge.style.display = 'inline-block';
+    } else {
+      inboxBadge.style.display = 'none';
+    }
+
+    const main = document.getElementById('mainView');
+    const fab = document.getElementById('fabBtn');
+    const tabsBar = document.getElementById('tabsBar');
+
+    if (selectedListId) {
+      tabsBar.style.display = 'none';
+      fab.style.display = 'none';
+      renderDetailView();
+      return;
+    }
+
+    tabsBar.style.display = 'flex';
+    fab.style.display = currentTab === 'my_lists' ? 'flex' : 'none';
+
+    // Фильтрация списков
+    let filtered = [];
+    if (currentTab === 'my_lists') {
+      filtered = lists.filter(l => l.senderId === user.id && !l.recipientId);
+    } else if (currentTab === 'inbox') {
+      filtered = lists.filter(l => l.recipientId === user.id);
+    } else if (currentTab === 'sent') {
+      filtered = lists.filter(l => l.senderId === user.id && !!l.recipientId);
+    }
+
+    if (filtered.length === 0) {
+      main.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <h3>${currentTab === 'inbox' ? 'Входящих списков нет' : currentTab === 'sent' ? 'Нет отправленных списков' : 'У вас пока нет списков'}</h3>
+          <p>${currentTab === 'inbox' ? 'Когда другой пользователь направит вам список со своего телефона, он появится здесь.' : currentTab === 'sent' ? 'Создайте список в «Мои списки» и нажмите «Направить».' : 'Нажмите кнопку + внизу, чтобы создать список покупок.'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    main.innerHTML = filtered.map(list => {
+      const boughtCount = list.items.filter(i => i.isBought).length;
+      const totalCount = list.items.length;
+      const isComplete = totalCount > 0 && boughtCount === totalCount;
+      const sub = currentTab === 'inbox' ? `От: ${list.senderName}` : currentTab === 'sent' ? `Кому: ${list.recipientName}` : list.category;
+      const statusText = isComplete ? 'Куплено' : list.recipientId ? 'Направлен' : 'Черновик';
+      const statusClass = isComplete ? 'status-complete' : list.recipientId ? 'status-sent' : 'status-draft';
+
+      return `
+        <div class="list-card" onclick="openList('${list.id}')">
+          <div class="list-card-header">
+            <div>
+              <div class="list-card-title">${escapeHtml(list.title)}</div>
+              <div class="list-card-sub">${sub}</div>
+            </div>
+            <span class="status-tag ${statusClass}">${statusText}</span>
+          </div>
+          <div class="list-card-footer">
+            <span>🛒 ${totalCount === 0 ? 'Пусто' : `Куплено ${boughtCount} из ${totalCount}`}</span>
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteList('${list.id}')" title="Удалить">🗑️</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderDetailView() {
+    const list = lists.find(l => l.id === selectedListId);
+    if (!list) { selectedListId = null; render(); return; }
+    const user = getCurrentUser();
+    const main = document.getElementById('mainView');
+
+    const isCreator = list.senderId === user.id;
+
+    main.innerHTML = `
+      <div class="detail-view">
+        <div class="detail-header">
+          <button class="detail-back" onclick="selectedListId=null; render()">
+            ← Назад
+          </button>
+          ${isCreator ? `
+            <button class="send-btn" onclick="openSendModal('${list.id}')">
+              ✈️ ${list.recipientId ? 'Перенаправить' : 'Направить'}
+            </button>
+          ` : ''}
+        </div>
+
+        <div style="padding: 16px;">
+          <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 2px;">${escapeHtml(list.title)}</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+            ${list.recipientId ? (list.recipientId === user.id ? `От: ${list.senderName}` : `Кому: ${list.recipientName}`) : 'Личный список'}
+          </p>
+
+          ${list.items.length === 0 ? `
+            <div class="empty-state" style="padding: 30px;">
+              <p>В списке пока нет товаров. Добавьте первый товар кнопкой ниже!</p>
+            </div>
+          ` : list.items.map(it => `
+            <div class="item-row ${it.isBought ? 'bought' : ''}" onclick="toggleItem('${it.id}')">
+              <div class="checkbox ${it.isBought ? 'checked' : ''}">${it.isBought ? '✓' : ''}</div>
+              <div style="flex:1">
+                <div class="item-name ${it.isBought ? 'bought' : ''}">${escapeHtml(it.name)}</div>
+                <div style="display:flex; align-items:center; margin-top:4px;">
+                  <span class="item-tag">${escapeHtml(it.quantity)}</span>
+                  <span class="item-category">${it.category}</span>
+                  ${it.boughtBy ? `<span class="bought-by-label">Купил(а): ${escapeHtml(it.boughtBy)}</span>` : ''}
+                </div>
+              </div>
+              <button class="delete-btn" onclick="event.stopPropagation(); deleteItem('${it.id}')">✕</button>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="bottom-bar">
+          <button class="add-item-btn" onclick="openAddItemModal()">+ Добавить товар</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function openList(id) {
+    selectedListId = id;
+    render();
+  }
+
+  function toggleItem(itemId) {
+    const list = lists.find(l => l.id === selectedListId);
+    if (!list) return;
+    const user = getCurrentUser();
+    const updatedItems = list.items.map(it => {
+      if (it.id === itemId) {
+        const newBought = !it.isBought;
+        return { ...it, isBought: newBought, boughtBy: newBought ? user.name : null };
+      }
+      return it;
+    });
+
+    const allBought = updatedItems.length > 0 && updatedItems.every(i => i.isBought);
+    const anyBought = updatedItems.some(i => i.isBought);
+    const status = allBought ? 'completed' : anyBought ? 'in_progress' : list.recipientId ? 'sent' : 'draft';
+
+    const updatedLists = lists.map(l => l.id === list.id ? { ...l, items: updatedItems, status, updatedAt: Date.now() } : l);
+    saveAndUpload(updatedLists);
+  }
+
+  function deleteItem(itemId) {
+    const list = lists.find(l => l.id === selectedListId);
+    if (!list) return;
+    const updatedItems = list.items.filter(it => it.id !== itemId);
+    const updatedLists = lists.map(l => l.id === list.id ? { ...l, items: updatedItems, updatedAt: Date.now() } : l);
+    saveAndUpload(updatedLists);
+  }
+
+  function deleteList(id) {
+    if (confirm('Удалить этот список?')) {
+      const updated = lists.filter(l => l.id !== id);
+      if (selectedListId === id) selectedListId = null;
+      saveAndUpload(updated);
+    }
+  }
+
+  // Модальные окна
+  function openModal(html) {
+    document.getElementById('modalBox').innerHTML = html;
+    document.getElementById('modalOverlay').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').style.display = 'none';
+  }
+
+  function closeModalOnOverlay(e) {
+    if (e.target.id === 'modalOverlay') closeModal();
+  }
+
+  // Модалка пользователей
+  function openUserModal() {
+    const user = getCurrentUser();
+    const html = `
+      <h2>Выберите активный профиль</h2>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+        Переключайтесь между пользователями, чтобы тестировать обмен списками:
+      </p>
+      ${users.map(u => `
+        <div class="user-select-item ${u.id === user.id ? 'active' : ''}" onclick="selectUser('${u.id}')">
+          <div class="avatar" style="background:${u.colorHex}; width:28px; height:28px; font-size:12px;">${u.name[0]}</div>
+          <span style="flex:1; font-weight:600;">${escapeHtml(u.name)}</span>
+          ${u.id === user.id ? '✓' : ''}
+        </div>
+      `).join('')}
+      <button onclick="openNewUserModal()" style="width:100%; padding:10px; background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; margin-top:8px;">
+        + Добавить пользователя
+      </button>
+      <div class="modal-buttons">
+        <button class="btn-secondary" onclick="closeModal()">Закрыть</button>
+      </div>
+    `;
+    openModal(html);
+  }
+
+  function selectUser(id) {
+    currentUserId = id;
+    localStorage.setItem('web_current_user_id', id);
+    selectedListId = null;
+    closeModal();
+    render();
+  }
+
+  function openNewUserModal() {
+    const html = `
+      <h2>Новый пользователь</h2>
+      <input id="newUserNameInput" class="input-field" placeholder="Имя (например, Иван, Мама)" autofocus>
+      <div class="modal-buttons">
+        <button class="btn-secondary" onclick="openUserModal()">Назад</button>
+        <button class="btn-primary" onclick="createNewUser()">Создать</button>
+      </div>
+    `;
+    openModal(html);
+  }
+
+  function createNewUser() {
+    const val = document.getElementById('newUserNameInput').value.trim();
+    if (!val) return;
+    const colors = ['#8B5CF6', '#F59E0B', '#EF4444', '#14B8A6', '#6366F1'];
+    const newUser = {
+      id: 'user_' + Date.now(),
+      name: val,
+      colorHex: colors[Math.floor(Math.random() * colors.length)]
+    };
+    users.push(newUser);
+    localStorage.setItem('web_users', JSON.stringify(users));
+    selectUser(newUser.id);
+  }
+
+  // Модалка создания списка
+  function openCreateListModal() {
+    const html = `
+      <h2>Новый список покупок</h2>
+      <input id="createListTitleInput" class="input-field" placeholder="Название (например, Продукты на дачу)" autofocus>
+      <div class="modal-buttons">
+        <button class="btn-secondary" onclick="closeModal()">Отмена</button>
+        <button class="btn-primary" onclick="confirmCreateList()">Создать</button>
+      </div>
+    `;
+    openModal(html);
+  }
+
+  function confirmCreateList() {
+    const title = document.getElementById('createListTitleInput').value.trim();
+    if (!title) return;
+    const user = getCurrentUser();
+    const newList = {
+      id: 'list_' + Date.now(),
+      title: title,
+      category: 'Продукты',
+      senderId: user.id,
+      senderName: user.name,
+      recipientId: null,
+      recipientName: null,
+      status: 'draft',
+      items: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    closeModal();
+    selectedListId = newList.id;
+    saveAndUpload([newList, ...lists]);
+  }
+
+  // Модалка направления списка
+  function openSendModal(listId) {
+    const list = lists.find(l => l.id === listId);
+    if (!list) return;
+    const user = getCurrentUser();
+    const others = users.filter(u => u.id !== user.id);
+
+    const html = `
+      <h2>Кому направить список?</h2>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+        Список появится во «Входящих» у выбранного пользователя (в браузере и на Android):
+      </p>
+      ${others.map(o => `
+        <div class="user-select-item" onclick="confirmSendList('${list.id}', '${o.id}', '${escapeHtml(o.name)}')">
+          <div class="avatar" style="background:${o.colorHex}; width:32px; height:32px;">${o.name[0]}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;">${escapeHtml(o.name)}</div>
+            <div style="font-size:11px; color:var(--text-muted);">Направить в приложение</div>
+          </div>
+          <span>✈️</span>
+        </div>
+      `).join('')}
+      <div class="modal-buttons">
+        <button class="btn-secondary" onclick="closeModal()">Отмена</button>
+      </div>
+    `;
+    openModal(html);
+  }
+
+  function confirmSendList(listId, targetId, targetName) {
+    const updated = lists.map(l => {
+      if (l.id === listId) {
+        return {
+          ...l,
+          recipientId: targetId,
+          recipientName: targetName,
+          status: 'sent',
+          updatedAt: Date.now()
+        };
+      }
+      return l;
+    });
+    closeModal();
+    saveAndUpload(updated);
+    alert('Список успешно направлен пользователю ' + targetName + '!');
+  }
+
+  // Модалка добавления товара
+  function openAddItemModal() {
+    const html = `
+      <h2>Добавить покупку</h2>
+      <input id="addItemName" class="input-field" placeholder="Название товара (например, Сыр)" autofocus>
+      <input id="addItemQty" class="input-field" value="1 шт" placeholder="Количество">
+      <div class="quick-chips">
+        <button class="quick-chip" onclick="document.getElementById('addItemQty').value='1 шт'">1 шт</button>
+        <button class="quick-chip" onclick="document.getElementById('addItemQty').value='2 шт'">2 шт</button>
+        <button class="quick-chip" onclick="document.getElementById('addItemQty').value='0.5 кг'">0.5 кг</button>
+        <button class="quick-chip" onclick="document.getElementById('addItemQty').value='1 кг'">1 кг</button>
+        <button class="quick-chip" onclick="document.getElementById('addItemQty').value='1 л'">1 л</button>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-secondary" onclick="closeModal()">Отмена</button>
+        <button class="btn-primary" onclick="confirmAddItem()">Добавить</button>
+      </div>
+    `;
+    openModal(html);
+  }
+
+  function confirmAddItem() {
+    const name = document.getElementById('addItemName').value.trim();
+    const qty = document.getElementById('addItemQty').value.trim() || '1 шт';
+    if (!name) return;
+
+    const list = lists.find(l => l.id === selectedListId);
+    if (!list) return;
+
+    const newItem = {
+      id: 'item_' + Date.now(),
+      name: name,
+      quantity: qty,
+      category: 'Продукты',
+      isBought: false
+    };
+
+    const updatedLists = lists.map(l => {
+      if (l.id === list.id) {
+        return { ...l, items: [...l.items, newItem], updatedAt: Date.now() };
+      }
+      return l;
+    });
+
+    closeModal();
+    saveAndUpload(updatedLists);
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  // Автосинхронизация каждые 5 секунд
+  setInterval(syncWithCloud, 5000);
+
+  loadInitialData();
+</script>
+
+</body>
+</html>

@@ -82,13 +82,16 @@ fun MainApp(repository: ShoppingRepository) {
         repository.saveLists(updated)
     }
 
-    // Фоновая синхронизация с облаком при старте
+    // Фоновая синхронизация с облаком каждые 3.5 секунды
     LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            val remote = repository.syncFromCloud()
-            if (remote != null && remote.isNotEmpty()) {
-                allLists = remote
-            }
+        while (true) {
+            try {
+                val remote = repository.syncFromCloud()
+                if (remote != null && remote.isNotEmpty()) {
+                    allLists = remote
+                }
+            } catch (_: Exception) {}
+            kotlinx.coroutines.delay(3500)
         }
     }
 
